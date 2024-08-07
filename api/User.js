@@ -1,5 +1,9 @@
 const express = require('express');
 const router = express.Router();
+<<<<<<< HEAD
+=======
+const path = require('path');
+>>>>>>> b913c834adfa81a4bca77b45bea2ec3c6df5a445
 const User = require('../models/user');
 const UserOTPVerification = require('../models/userOTPVerification');
 const nodemailer = require("nodemailer");
@@ -25,7 +29,11 @@ transporter.verify((error, success) => {
 });
 
 // Sign up
+<<<<<<< HEAD
 router.post('/signup', async (req, res) => {
+=======
+router.post('/signup', (req, res) => {
+>>>>>>> b913c834adfa81a4bca77b45bea2ec3c6df5a445
     let { email, phone, password } = req.body;
     email = email.trim();
     phone = phone.trim();
@@ -103,7 +111,11 @@ const sendOTPVerificationEmail = async ({ _id, email }, res) => {
             from: process.env.AUTH_EMAIL,
             to: email,
             subject: "Verify Your Email",
+<<<<<<< HEAD
             html: `<p>Enter <b>${otp}</b> in the app to verify your email and complete signup and login into your account.</p><p>This code <b>expires in 1 hour</b>.</p>`,
+=======
+            html: `<p>Enter <b>${otp}</b>in the app to verify your email and complete signup and login into your account.</p><p>This code <b>expires in 1 hours</b>.</p>`,
+>>>>>>> b913c834adfa81a4bca77b45bea2ec3c6df5a445
         };
 
         const saltRounds = 10;
@@ -155,7 +167,11 @@ router.post("/verifyOTP", async (req, res) => {
 
                 if (expiresAt < Date.now()) {
                     // user otp record has expired
+<<<<<<< HEAD
                     await UserOTPVerification.deleteMany({ userId });
+=======
+                    await UserVerification.deleteMany({ userId });
+>>>>>>> b913c834adfa81a4bca77b45bea2ec3c6df5a445
                     throw new Error("Code has expired. Please try again.");
                 } else {
                     const validOTP = await bcrypt.compare(otp, hashedOTP);
@@ -259,6 +275,10 @@ router.post('/login', (req, res) => {
     }
 });
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> b913c834adfa81a4bca77b45bea2ec3c6df5a445
 //forgot password
 router.post('/forgot-password', (req, res) => {
     const { email } = req.body;
@@ -315,9 +335,16 @@ router.post('/forgot-password', (req, res) => {
     });
 });
 
+<<<<<<< HEAD
 //reset password route and controller 
 router.post('/reset-password/:token', (req, res) => {
     const { token } = req.params;
+=======
+
+//reset password route and controller 
+router.post('/reset-password/:token', (req, res) => {
+    const {token} = req.params;
+>>>>>>> b913c834adfa81a4bca77b45bea2ec3c6df5a445
     const { newPassword } = req.body;
 
     console.log(token);
@@ -363,4 +390,8 @@ router.post('/reset-password/:token', (req, res) => {
     });
 });
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> b913c834adfa81a4bca77b45bea2ec3c6df5a445
 module.exports = router;
