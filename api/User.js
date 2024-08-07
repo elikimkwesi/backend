@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const path = require('path');
 const User = require('../models/user');
 const UserOTPVerification = require('../models/userOTPVerification');
 const nodemailer = require("nodemailer");
@@ -26,7 +25,7 @@ transporter.verify((error, success) => {
 });
 
 // Sign up
-router.post('/signup', (req, res) => {
+router.post('/signup', async (req, res) => {
     let { email, phone, password } = req.body;
     email = email.trim();
     phone = phone.trim();
@@ -104,7 +103,7 @@ const sendOTPVerificationEmail = async ({ _id, email }, res) => {
             from: process.env.AUTH_EMAIL,
             to: email,
             subject: "Verify Your Email",
-            html: `<p>Enter <b>${otp}</b>in the app to verify your email and complete signup and login into your account.</p><p>This code <b>expires in 1 hours</b>.</p>`,
+            html: `<p>Enter <b>${otp}</b> in the app to verify your email and complete signup and login into your account.</p><p>This code <b>expires in 1 hour</b>.</p>`,
         };
 
         const saltRounds = 10;
@@ -156,7 +155,7 @@ router.post("/verifyOTP", async (req, res) => {
 
                 if (expiresAt < Date.now()) {
                     // user otp record has expired
-                    await UserVerification.deleteMany({ userId });
+                    await UserOTPVerification.deleteMany({ userId });
                     throw new Error("Code has expired. Please try again.");
                 } else {
                     const validOTP = await bcrypt.compare(otp, hashedOTP);
@@ -260,7 +259,6 @@ router.post('/login', (req, res) => {
     }
 });
 
-
 //forgot password
 router.post('/forgot-password', (req, res) => {
     const { email } = req.body;
@@ -317,10 +315,9 @@ router.post('/forgot-password', (req, res) => {
     });
 });
 
-
 //reset password route and controller 
 router.post('/reset-password/:token', (req, res) => {
-    const {token} = req.params;
+    const { token } = req.params;
     const { newPassword } = req.body;
 
     console.log(token);
@@ -365,6 +362,5 @@ router.post('/reset-password/:token', (req, res) => {
         });
     });
 });
-
 
 module.exports = router;
