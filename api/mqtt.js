@@ -1,72 +1,53 @@
+// api/mqtt.js
 const mqtt = require('mqtt');
-const { analyzeAndStoreData, calculateAverages } = require('../Analyzer/dataAnalytics');
-require('dotenv').config();
+const { analyzeAndStoreData } = require('../Analyzer/dataAnalytics');
 
-// Define the connection options
-const subscribeToTopic = () => {
-    const clientId = 'diseasepred';
-    const username = 'dkfosu';
-    const password = 'eeee';
+const mqttListener = () => {
+    const clientId = 'yourClientId';
+    const username = process.env.MQTT_USERNAME;
+    const password = process.env.MQTT_PASSWORD;
+    const brokerUrl = process.env.MQTT_BROKER_URL;
 
-    let client;
-    try {
-        client = mqtt.connect('wss://b1bb4899.ala.eu-central-1.emqxsl.com:8084/mqtt', {
-            clientId,
-            username,
-            password,
-        });
-    } catch (err) {
-        console.error('MQTT connection error:', err);
-    }
+    const client = mqtt.connect(brokerUrl, {
+        clientId,
+        username,
+        password,
+    });
 
     const topic = 'plantmonitor';
-    const qos = 1;
 
-    try {
-        client.subscribe(topic, { qos }, (err) => {
+    client.on('connect', () => {
+        console.log('Connected to MQTT broker');
+        client.subscribe(topic, { qos: 1 }, (err) => {
             if (err) {
-                console.log('Subscription error:', err);
-                return;
+                console.error('Subscription error:', err.message);
             } else {
                 console.log(`Subscribed to topic ${topic}`);
             }
         });
-    } catch (error) {
-        console.log(error);
-    }
+    });
 
-    client.on('message', async (topic, payload) => {
-        console.log('Received Message:', topic, payload.toString());
-        await analyzeAndStoreData(topic, payload);
+    client.on('message', (topic, payload) => {
+        const message = payload.toString();
+        console.log('Received message:', topic, message);
+        analyzeAndStoreData(topic, message);
     });
 
     client.on('error', (err) => {
-        console.log('Connection error:', err);
-    });
-
-    client.on('connect', () => {
-        console.log('Connected to MQTT broker');
+        console.error('MQTT error:', err.message);
     });
 
     client.on('close', () => {
-        console.log('Connection closed');
+        console.log('MQTT connection closed');
     });
 
     client.on('offline', () => {
-        console.log('Client is offline');
+        console.log('MQTT client is offline');
     });
 
     client.on('reconnect', () => {
-        console.log('Reconnecting to MQTT broker....');
+        console.log('Reconnecting to MQTT broker...');
     });
-
-    return client;
 };
 
-// Calculate averages for different periods
-setInterval(() => calculateAverages('day'), 24 * 60 * 60 * 1000);  // Daily
-setInterval(() => calculateAverages('week'), 7 * 24 * 60 * 60 * 1000);  // Weekly
-setInterval(() => calculateAverages('month'), 30 * 24 * 60 * 60 * 1000);  // Monthly
-setInterval(() => calculateAverages('year'), 365 * 24 * 60 * 60 * 1000);  // Yearly
-
-module.exports = subscribeToTopic;
+module.exports = mqttListener;

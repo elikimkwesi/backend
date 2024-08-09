@@ -25,74 +25,57 @@ transporter.verify((error, success) => {
 });
 
 // Sign up
+// Optimized signup route
 router.post('/signup', async (req, res) => {
     let { email, phone, password } = req.body;
-    email = email.trim();
-    phone = phone.trim();
-    password = password.trim();
 
-    if (email === "" || phone === "" || password === "") {
-        res.json({
-            status: "FAILED",
-            message: "Empty input fields!"
-        });
-    } else if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
-        res.json({
-            status: "FAILED",
-            message: "Invalid email entered"
-        });
-    } else if (phone.length < 10) {
-        res.json({
-            status: "FAILED",
-            message: "Invalid phone entered"
-        });
-    } else if (password.length < 8) {
-        res.json({
-            status: "FAILED",
-            message: "Password is too short!"
-        });
-    } else {
-        // Checking if user already exists
-        User.find({ email }).then(result => {
-            if (result.length) {
-                res.json({
-                    status: "FAILED",
-                    message: "User already exists"
-                });
-            } else {
-                const saltRounds = 10;
-                bcrypt.hash(password, saltRounds).then(hashedPassword => {
-                    const newUser = new User({
-                        email,
-                        phone,
-                        password: hashedPassword,
-                        verified: false,
-                    });
+    if (!email || !phone || !password) {
+        return res.status(400).json({ status: "FAILED", message: "Empty input fields!" });
+    }
 
-                    newUser.save().then(result => {
-                        sendOTPVerificationEmail(result, res);
-                    }).catch(err => {
-                        res.json({
-                            status: "FAILED",
-                            message: "An error occurred while saving user account!"
-                        });
-                    });
-                }).catch(err => {
-                    res.json({
-                        status: "FAILED",
-                        message: "An error occurred while hashing password"
-                    });
-                });
-            }
-        }).catch(err => {
-            console.log(err);
-            res.json({
-                status: "FAILED",
-                message: "An error occurred while checking for existing user!"
-            });
+    if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
+        return res.status(400).json({ status: "FAILED", message: "Invalid email entered" });
+    }
+
+    if (phone.length < 10) {
+        return res.status(400).json({ status: "FAILED", message: "Invalid phone entered" });
+    }
+
+    if (password.length < 8) {
+        return res.status(400).json({ status: "FAILED", message: "Password is too short!" });
+    }
+
+    try {
+        // Check if user already exists
+        const existingUser = await User.findOne({ email }).select('_id');
+        if (existingUser) {
+            return res.status(409).json({ status: "FAILED", message: "User already exists" });
+        }
+
+        // Hash the password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Create and save the new user
+        const newUser = new User({
+            email,
+            phone,
+            password: hashedPassword,
+            verified: false,
         });
+
+        const savedUser = await newUser.save();
+
+        // Send OTP for verification
+        await sendOTPVerificationEmail(savedUser, res);
+
+    } catch (err) {
+        console.error('Signup error:', err);
+        res.status(500).json({ status: "FAILED", message: "An error occurred during signup!" });
     }
 });
+
+module.exports = router;
+
 
 // send otp verification email
 const sendOTPVerificationEmail = async ({ _id, email }, res) => {
@@ -134,54 +117,46 @@ const sendOTPVerificationEmail = async ({ _id, email }, res) => {
 }
 
 // verify otp email
+// Optimized verify OTP route
 router.post("/verifyOTP", async (req, res) => {
+    const { userId, otp } = req.body;
+
+    if (!userId || !otp) {
+        return res.status(400).json({ status: "FAILED", message: "Empty OTP details are not allowed" });
+    }
+
     try {
-        let { userId, otp } = req.body;
-        if (!userId || !otp) {
-            throw Error("Empty otp details are not allowed");
-        } else {
-            const UserVerificationRecords = await UserOTPVerification.find({
-                userId,
-            });
-            if (UserVerificationRecords.length <= 0) {
-                // throw error
-                throw new Error(
-                    "Account record doesn't exist or has been verified already. Please sign up or log in."
-                );
-            } else {
-                // user otp record exits
-                const { expiresAt } = UserVerificationRecords[0];
-                const hashedOTP = UserVerificationRecords[0].otp;
-
-                if (expiresAt < Date.now()) {
-                    // user otp record has expired
-                    await UserOTPVerification.deleteMany({ userId });
-                    throw new Error("Code has expired. Please try again.");
-                } else {
-                    const validOTP = await bcrypt.compare(otp, hashedOTP);
-
-                    if (!validOTP) {
-                        //supplied otp is wrong
-                        throw new Error("Invalid code passed. Check your inbox.");
-                    } else {
-                        // success
-                        await User.updateOne({ _id: userId }, { verified: true });
-                        await UserOTPVerification.deleteMany({ userId });
-                        res.json({
-                            status: "VERIFIED",
-                            message: "User email verified successfully.",
-                        });
-                    }
-                }
-            }
+        const userVerificationRecord = await UserOTPVerification.findOne({ userId });
+        if (!userVerificationRecord) {
+            return res.status(400).json({ status: "FAILED", message: "Account record doesn't exist or has been verified already." });
         }
-    } catch (error) {
-        res.json({
-            status: "FAILED",
-            message: error.message,
-        });
+
+        const { expiresAt, otp: hashedOTP } = userVerificationRecord;
+
+        if (expiresAt < Date.now()) {
+            await UserOTPVerification.deleteOne({ userId });
+            return res.status(410).json({ status: "FAILED", message: "Code has expired. Please try again." });
+        }
+
+        const isValidOTP = await bcrypt.compare(otp, hashedOTP);
+        if (!isValidOTP) {
+            return res.status(400).json({ status: "FAILED", message: "Invalid code passed. Check your inbox." });
+        }
+
+        // Mark user as verified
+        await User.updateOne({ _id: userId }, { verified: true });
+        await UserOTPVerification.deleteMany({ userId });
+
+        res.json({ status: "VERIFIED", message: "User email verified successfully." });
+
+    } catch (err) {
+        console.error('OTP Verification error:', err);
+        res.status(500).json({ status: "FAILED", message: "An error occurred during OTP verification!" });
     }
 });
+
+module.exports = router;
+
 
 // resend verification
 router.post("/resendOTPVerification", async (req, res) => {
@@ -204,60 +179,51 @@ router.post("/resendOTPVerification", async (req, res) => {
 });
 
 // Login
-router.post('/login', (req, res) => {
-    let { email, password } = req.body;
-    email = email.trim();
-    password = password.trim();
+// Optimized login route
+router.post('/login', async (req, res) => {
+    const { email, password } = req.body;
 
-    if (email === "" || password === "") {
+    if (!email || !password) {
+        return res.status(400).json({ status: "FAILED", message: "Empty credentials supplied!" });
+    }
+
+    try {
+        // Fetch only the necessary fields for login
+        const user = await User.findOne({ email }).select('password verified');
+        if (!user) {
+            return res.status(401).json({ status: "FAILED", message: "Invalid credentials entered!" });
+        }
+
+        if (!user.verified) {
+            return res.status(403).json({ status: "FAILED", message: "Email has not been verified yet. Check inbox." });
+        }
+
+        // Compare passwords
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ status: "FAILED", message: "Invalid password entered!" });
+        }
+
+        // Generate JWT
+        const token = jwt.sign(
+            { userId: user._id, email: user.email },
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
+        );
+
         res.json({
-            status: "FAILED",
-            message: "Empty credentials supplied!"
+            status: "SUCCESS",
+            message: "Login successful",
+            data: { token, userId: user._id, email: user.email }
         });
-    } else {
-        User.find({ email }).then(data => {
-            if (data.length) {
-                if (!data[0].verified) {
-                    res.json({
-                        status: "FAILED",
-                        message: "Email has not been verified yet. Check inbox."
-                    });
-                } else {
-                    const hashedPassword = data[0].password;
-                    bcrypt.compare(password, hashedPassword).then(result => {
-                        if (result) {
-                            res.json({
-                                status: "SUCCESS",
-                                message: "Login successful",
-                                data: data,
-                            });
-                        } else {
-                            res.json({
-                                status: "FAILED",
-                                message: "Invalid password entered!",
-                            });
-                        }
-                    }).catch(err => {
-                        res.json({
-                            status: "FAILED",
-                            message: "An error occurred while comparing password",
-                        });
-                    });
-                }
-            } else {
-                res.json({
-                    status: "FAILED",
-                    message: "Invalid credentials entered!",
-                });
-            }
-        }).catch(err => {
-            res.json({
-                status: "FAILED",
-                message: "An error occurred while checking for existing account!",
-            });
-        });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ status: "FAILED", message: "An error occurred during login!" });
     }
 });
+
+module.exports = router;
+
 
 //forgot password
 router.post('/forgot-password', (req, res) => {

@@ -1,4 +1,4 @@
-require('dotenv').config();
+// controllers/dataAnalytics.js
 const UserDataAnalytics = require('../models/UserDataAnalytics');
 
 const optimalConditions = {
@@ -9,9 +9,8 @@ const optimalConditions = {
 
 const analyzeAndStoreData = async (topic, payload) => {
     try {
-        const jsonMessage = JSON.parse(payload.toString());
+        const jsonMessage = JSON.parse(payload);
 
-        // Analyze and store the message
         const { soilMoisture, humidity, temperature, waterLevel } = jsonMessage;
         const data = new UserDataAnalytics({
             topic,
@@ -22,15 +21,12 @@ const analyzeAndStoreData = async (topic, payload) => {
             timestamp: new Date()
         });
 
-        // Insert data into MongoDB
         await data.save();
-        console.log('Data stored in MongoDB:', data);
+        console.log('Data stored:', data);
 
-        // Check if the current readings are within optimal conditions
         checkConditions(data);
-
     } catch (err) {
-        console.error('Error processing message:', err);
+        console.error('Error processing message:', err.message);
     }
 };
 
@@ -38,18 +34,17 @@ const checkConditions = (data) => {
     const alerts = [];
 
     if (data.temperature < optimalConditions.temperature.min || data.temperature > optimalConditions.temperature.max) {
-        alerts.push(`Temperature out of optimal range: ${data.temperature}`);
+        alerts.push(`Temperature out of range: ${data.temperature}`);
     }
     if (data.humidity < optimalConditions.humidity.min || data.humidity > optimalConditions.humidity.max) {
-        alerts.push(`Humidity out of optimal range: ${data.humidity}`);
+        alerts.push(`Humidity out of range: ${data.humidity}`);
     }
     if (data.soilMoisture < optimalConditions.soilMoisture.min || data.soilMoisture > optimalConditions.soilMoisture.max) {
-        alerts.push(`Soil moisture out of optimal range: ${data.soilMoisture}`);
+        alerts.push(`Soil moisture out of range: ${data.soilMoisture}`);
     }
 
     if (alerts.length > 0) {
         console.log('Alerts:', alerts);
-        // You can add more code here to send alerts to the user, e.g., via email or push notifications
     }
 };
 
@@ -62,7 +57,7 @@ const calculateAverages = async (period) => {
             start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             break;
         case 'week':
-            start = new Date(now.setDate(now.getDate() - now.getDay()));
+            start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
             break;
         case 'month':
             start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -84,14 +79,17 @@ const calculateAverages = async (period) => {
                 avgSoilMoisture: { $avg: '$soilMoisture' }
             }
         }
-    ]);
+    ]).allowDiskUse(true);
 
     if (results.length > 0) {
         const { avgTemperature, avgHumidity, avgSoilMoisture } = results[0];
-        console.log(`Averages for ${period}: Temperature: ${avgTemperature}, Humidity: ${avgHumidity}, Soil Moisture: ${avgSoilMoisture}`);
-        checkConditions({ temperature: avgTemperature, humidity: avgHumidity, soilMoisture: avgSoilMoisture });
+        return {
+            avgTemperature,
+            avgHumidity,
+            avgSoilMoisture
+        };
     } else {
-        console.log(`No data available for ${period}`);
+        throw new Error(`No data available for the selected period`);
     }
 };
 
