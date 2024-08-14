@@ -6,6 +6,7 @@ const nodemailer = require("nodemailer");
 const { v4: uuidv4 } = require("uuid");
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const Device = require('../models/devices');
 require("dotenv").config();
 
 let transporter = nodemailer.createTransport({
@@ -27,9 +28,9 @@ transporter.verify((error, success) => {
 // Sign up
 // Optimized signup route
 router.post('/signup', async (req, res) => {
-    let { email, phone, password } = req.body;
+    let { email, phone, password, macAddress } = req.body;
 
-    if (!email || !phone || !password) {
+    if (!email || !phone || !password || !macAddress) {
         return res.status(400).json({ status: "FAILED", message: "Empty input fields!" });
     }
 
@@ -46,6 +47,11 @@ router.post('/signup', async (req, res) => {
     }
 
     try {
+        // Check if MAC address exists in the database
+        const device = await Device.findOne({ macAddress });
+        if (!device) {
+            return res.status(404).json({ status: "FAILED", message: "Invalid MAC address" });
+        }
         // Check if user already exists
         const existingUser = await User.findOne({ email }).select('_id');
         if (existingUser) {
@@ -61,9 +67,14 @@ router.post('/signup', async (req, res) => {
             phone,
             password: hashedPassword,
             verified: false,
+            macAddress,
         });
 
         const savedUser = await newUser.save();
+
+        // Associate the user with the device
+        device.userId = savedUser._id;
+        await device.save();
 
         // Send OTP for verification
         await sendOTPVerificationEmail(savedUser, res);

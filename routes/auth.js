@@ -17,6 +17,7 @@ router.post(
     check('email', 'Email is required').isEmail(),
     check('password', 'Password is required').isLength({ min: 6 }),
     check('phone', 'Phone number is required').isMobilePhone('any'),
+    check('macAddress', 'Harvestify id is required').isMACAddress(),
   ],
   validateRequest,
   register
