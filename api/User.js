@@ -412,4 +412,21 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+router.post('/logout', (req, res) => {
+    try {
+        // Typically, you would handle token removal on the client side.
+        // Here, we'll just send a success message.
+        res.json({
+            status: "SUCCESS",
+            message: "Logout successful. Token invalidation must be handled on the client side."
+        });
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({
+            status: "FAILED",
+            message: "An error occurred during logout!"
+        });
+    }
+});
+
 module.exports = router;
