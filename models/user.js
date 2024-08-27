@@ -5,6 +5,9 @@ const UserSchema = new Schema({
     email: String,
     phone: String,
     password: String,
+    surname: String,
+    other_names: String,
+    secondary_contact: String,
     verified: Boolean,
     macAddress: String
 });

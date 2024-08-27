@@ -340,4 +340,43 @@ router.post('/reset-password/:token', (req, res) => {
     });
 });
 
+router.post('/update_profile', async (req, res) => {
+    const { userId, surname, other_names, secondary_contact } = req.body;
+
+    if (!userId) {
+        return res.status(400).json({ status: "FAILED", message: "User ID is required!" });
+    }
+
+    try {
+        // Find the user by ID
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ status: "FAILED", message: "User not found" });
+        }
+
+        // Update the user's profile
+        if (surname) user.surname = surname;
+        if (other_names) user.other_names = other_names;
+        if (secondary_contact) user.secondary_contact = secondary_contact;
+
+        // Save the updated user
+        const updatedUser = await user.save();
+
+        res.status(200).json({
+            status: "SUCCESS",
+            message: "Profile updated successfully",
+            user: {
+                surname: updatedUser.surname,
+                other_names: updatedUser.other_names,
+                secondary_contact: updatedUser.secondary_contact
+            }
+        });
+
+    } catch (err) {
+        console.error('Update profile error:', err);
+        res.status(500).json({ status: "FAILED", message: "An error occurred while updating the profile!" });
+    }
+})
+
 module.exports = router;
