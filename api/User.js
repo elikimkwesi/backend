@@ -391,6 +391,16 @@ router.post('/update_profile', async (req, res) => {
     }
 })
 
+router.get('/logout', (req, res) => {
+     
+    // Typically, you would handle token removal on the client side.
+    // Here, we'll just send a success message.
+    res.json({
+        status: "SUCCESS",
+        message: "Logout successful. Token invalidation must be handled on the client side."
+    });
+});
+
 router.get('/:id', async (req, res) => {
     const userId = req.params.id;
 
@@ -410,16 +420,6 @@ router.get('/:id', async (req, res) => {
         console.error('Error retrieving user information:', error);
         res.status(500).json({ status: "FAILED", message: "An error occurred while retrieving user information!" });
     }
-});
-
-router.get('/logout', (req, res) => {
-     
-        // Typically, you would handle token removal on the client side.
-        // Here, we'll just send a success message.
-        res.json({
-            status: "SUCCESS",
-            message: "Logout successful. Token invalidation must be handled on the client side."
-        });
 });
 
 module.exports = router;
