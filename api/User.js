@@ -391,4 +391,25 @@ router.post('/update_profile', async (req, res) => {
     }
 })
 
+router.get('/user/:id', async (req, res) => {
+    const userId = req.params.id;
+
+    try {
+        // Find the user by their ID and exclude the password from the response
+        const user = await User.findById(userId).select('-password');
+        if (!user) {
+            return res.status(404).json({ status: "FAILED", message: "User not found!" });
+        }
+
+        res.json({
+            status: "SUCCESS",
+            message: "User information retrieved successfully",
+            data: user
+        });
+    } catch (error) {
+        console.error('Error retrieving user information:', error);
+        res.status(500).json({ status: "FAILED", message: "An error occurred while retrieving user information!" });
+    }
+});
+
 module.exports = router;
