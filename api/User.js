@@ -412,7 +412,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-router.post('/logout', (req, res) => {
+router.get('/logout', (req, res) => {
     try {
         // Typically, you would handle token removal on the client side.
         // Here, we'll just send a success message.
