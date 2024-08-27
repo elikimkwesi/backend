@@ -391,7 +391,7 @@ router.post('/update_profile', async (req, res) => {
     }
 })
 
-router.get('/user/:id', async (req, res) => {
+router.get('/:id', async (req, res) => {
     const userId = req.params.id;
 
     try {
