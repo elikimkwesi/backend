@@ -30,7 +30,7 @@ transporter.verify((error, success) => {
 router.post('/signup', async (req, res) => {
     let { email, phone, password, macAddress, secondary_contact, surname, other_names } = req.body;
 
-    if (!email || !phone || !password || !macAddress || !surname || !other_names || !secondary_contact) {
+    if (!email || !phone || !password || !macAddress || !surname || !other_names) {
         return res.status(400).json({ status: "FAILED", message: "Empty input fields!" });
     }
 
@@ -46,9 +46,6 @@ router.post('/signup', async (req, res) => {
         return res.status(400).json({ status: "FAILED", message: "Password is too short!" });
     }
 
-    if (secondary_contact.length < 10) {
-        return res.status(400).json({ status: "FAILED", message: "Invalid phone number entered" });
-    }
 
     if (surname = null) {
         return res.status(400).json({ status: "FAILED", message: "Empty field required" });
