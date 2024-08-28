@@ -14,7 +14,7 @@ const mqttListener = () => {
         password,
     });
 
-    const topic = 'plantmonitor';
+    const topic = 'harvestifyfarm';
 
     client.on('connect', () => {
         console.log('Connected to MQTT broker');
