@@ -60,7 +60,7 @@ const calculateAverages = async (period) => {
     switch (period) {
         case 'day':
             start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            groupBy = { $hour: '$timestamp' };
+            groupBy = { $minute: '$timestamp' };
             break;
         case 'week':
             start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
