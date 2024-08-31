@@ -1,8 +1,8 @@
 const UserDataAnalytics = require('../models/UserDataAnalytics');
 
 const optimalConditions = {
-    temperature: { min: 18, max: 24 },
-    humidity: { min: 40, max: 60 },
+    atmosphericTemperature: { min: 5, max: 24 },
+    atmosphericHumidity: { min: 5, max: 60 },
     soilMoisture: { min: 20, max: 50 }
 };
 
@@ -12,16 +12,16 @@ const sendAlert = (message) => {
 };
 
 const checkConditions = (data) => {
-    const { soilMoisture, humidity, temperature } = data;
+    const { soilMoisture, atmosphericHumidity, atmosphericTemperature } = data;
 
     // Check temperature
-    if (temperature < optimalConditions.temperature.min || temperature > optimalConditions.temperature.max) {
-        sendAlert(`Temperature of ${temperature}°C is out of the optimal range (${optimalConditions.temperature.min}°C - ${optimalConditions.temperature.max}°C).`);
+    if (atmosphericTemperature < optimalConditions.atmosphericTemperature.min || atmosphericTemperature > optimalConditions.atmosphericTemperature.max) {
+        sendAlert(`Temperature of ${atmosphericTemperature}°C is out of the optimal range (${optimalConditions.atmosphericTemperature.min}°C - ${optimalConditions.atmosphericTemperature.max}°C).`);
     }
 
     // Check humidity
-    if (humidity < optimalConditions.humidity.min || humidity > optimalConditions.humidity.max) {
-        sendAlert(`Humidity of ${humidity}% is out of the optimal range (${optimalConditions.humidity.min}% - ${optimalConditions.humidity.max}%).`);
+    if (atmosphericHumidity < optimalConditions.atmosphericHumidity.min || atmosphericHumidity > optimalConditions.atmosphericHumidity.max) {
+        sendAlert(`Humidity of ${atmosphericHumidity}% is out of the optimal range (${optimalConditions.atmosphericHumidity.min}% - ${optimalConditions.atmosphericHumidity.max}%).`);
     }
 
     // Check soil moisture
@@ -38,8 +38,8 @@ const analyzeAndStoreData = async (topic, payload) => {
         const data = new UserDataAnalytics({
             topic,
             soilMoisture,
-            humidity,
-            temperature,
+            atmosphericHumidity,
+            atmosphericTemperature,
             waterLevel,
             timestamp: new Date()
         });
@@ -83,8 +83,8 @@ const calculateAverages = async (period) => {
         {
             $group: {
                 _id: groupBy,
-                avgTemperature: { $avg: '$temperature' },
-                avgHumidity: { $avg: '$humidity' },
+                avgTemperature: { $avg: '$atmosphericTemperature' },
+                avgHumidity: { $avg: '$atmosphericHumidity' },
                 avgSoilMoisture: { $avg: '$soilMoisture' },
                 avgwaterLevel: { $avg: 'waterLevel'}
             }
@@ -97,13 +97,13 @@ const calculateAverages = async (period) => {
             const { avgTemperature, avgHumidity, avgSoilMoisture } = result;
 
             // Check temperature
-            if (avgTemperature < optimalConditions.temperature.min || avgTemperature > optimalConditions.temperature.max) {
-                sendAlert(`Average Temperature of ${avgTemperature}°C is out of the optimal range (${optimalConditions.temperature.min}°C - ${optimalConditions.temperature.max}°C).`);
+            if (avgTemperature < optimalConditions.atmosphericTemperature.min || avgTemperature > optimalConditions.atmosphericTemperature.max) {
+                sendAlert(`Average Temperature of ${avgTemperature}°C is out of the optimal range (${optimalConditions.atmosphericTemperature.min}°C - ${optimalConditions.atmosphericTemperature.max}°C).`);
             }
 
             // Check humidity
-            if (avgHumidity < optimalConditions.humidity.min || avgHumidity > optimalConditions.humidity.max) {
-                sendAlert(`Average Humidity of ${avgHumidity}% is out of the optimal range (${optimalConditions.humidity.min}% - ${optimalConditions.humidity.max}%).`);
+            if (avgHumidity < optimalConditions.atmosphericHumidity.min || avgHumidity > optimalConditions.atmosphericHumidity.max) {
+                sendAlert(`Average Humidity of ${avgHumidity}% is out of the optimal range (${optimalConditions.atmosphericHumidity.min}% - ${optimalConditions.atmosphericHumidity.max}%).`);
             }
 
             // Check soil moisture
