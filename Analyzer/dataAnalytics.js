@@ -85,7 +85,8 @@ const calculateAverages = async (period) => {
                 _id: groupBy,
                 avgTemperature: { $avg: '$temperature' },
                 avgHumidity: { $avg: '$humidity' },
-                avgSoilMoisture: { $avg: '$soilMoisture' }
+                avgSoilMoisture: { $avg: '$soilMoisture' },
+                avgwaterLevel: { $avg: 'waterLevel'}
             }
         },
         { $sort: { _id: 1 } }  // Sorting by the group (hour, day, week, etc.)
@@ -115,7 +116,8 @@ const calculateAverages = async (period) => {
             period: result._id,
             avgTemperature: result.avgTemperature,
             avgHumidity: result.avgHumidity,
-            avgSoilMoisture: result.avgSoilMoisture
+            avgSoilMoisture: result.avgSoilMoisture,
+            avgwaterLevel: result.avgwaterLevel
         }));
     } else {
         throw new Error(`No data available for the selected period`);
