@@ -34,7 +34,7 @@ const analyzeAndStoreData = async (topic, payload) => {
     try {
         const jsonMessage = JSON.parse(payload);
 
-        const { soilMoisture, humidity, temperature, waterLevel } = jsonMessage;
+        const { soilMoisture, atmosphericHumidity, atmosphericTemperature, waterLevel } = jsonMessage;
         const data = new UserDataAnalytics({
             topic,
             soilMoisture,
